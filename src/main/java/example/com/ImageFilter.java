@@ -12,7 +12,7 @@ public class ImageFilter {
 	private int width;
 	private int height;
 
-	private final int NRSTEPS = 100;
+	private final int NRSTEPS = 1;
 
 	public ImageFilter(int[] src, int[] dst, int w, int h) {
 		this.src = src;
@@ -33,21 +33,25 @@ public class ImageFilter {
 						rt += (float) ((pixel & 0x00ff0000) >> 16);
 						gt += (float) ((pixel & 0x0000ff00) >> 8);
 						bt += (float) ((pixel & 0x000000ff));
+						// System.out.println("index (with -1):" + index);
 
 						index = k * width + j;
 						pixel = src[index];
 						rt += (float) ((pixel & 0x00ff0000) >> 16);
 						gt += (float) ((pixel & 0x0000ff00) >> 8);
 						bt += (float) ((pixel & 0x000000ff));
+						// System.out.println("index (with 0):" + index);
 
 						index = k * width + j + 1;
 						pixel = src[index];
 						rt += (float) ((pixel & 0x00ff0000) >> 16);
 						gt += (float) ((pixel & 0x0000ff00) >> 8);
 						bt += (float) ((pixel & 0x000000ff));
+						// System.out.println("index (with +1):" + index);
 					}
 					// Re-assemble destination pixel.
 					index = i * width + j;
+					System.out.println("index (with i):" + index);
 					int dpixel = (0xff000000) | (((int) rt / 9) << 16) | (((int) gt / 9) << 8) | (((int) bt / 9));
 					dst[index] = dpixel;
 				}

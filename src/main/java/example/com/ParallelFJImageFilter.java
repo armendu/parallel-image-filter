@@ -1,99 +1,93 @@
 package example.com;
 
-import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.ForkJoinTask;
-import java.util.concurrent.RecursiveTask;
-import java.util.stream.LongStream;
+import java.util.concurrent.RecursiveAction;
+import java.util.*;
+import java.util.concurrent.*;
+import java.util.concurrent.locks.LockSupport;
+import java.util.concurrent.locks.AbstractQueuedSynchronizer;
 
-public class ParallelFJImageFilter extends RecursiveTask {
+public class ParallelFJImageFilter extends RecursiveAction {
 
-    public static final long threshold = 10_000;
+    public static final long threshold = 5001;
 
     private int[] src;
 	private int[] dst;
-	private int width;
-	private int height;
+	private final int width;
+	private final int height;
+	private final int start;
+    private final int end;
 
-	private final int NRSTEPS = 100;
+	private final int NRSTEPS = 1;
 
-	public ParallelFJImageFilter(int[] src, int[] dst, int w, int h) {
+	public ParallelFJImageFilter(int[] src, int[] dst, int w, int h, int start, int end) {
 		this.src = src;
 		this.dst = dst;
-		width = w;
-		height = h;
+		this.width = w;
+		this.height = h;
+		this.start = start;
+		this.end = end;
 	}
 
     @Override
-    protected Object compute() {
-		return null;
-    //     int length = height - width;
-    //     if (length <= threshold) {
-    //         return add();
-    //     }
+    protected void compute() {
+        if ( end - start <= threshold) {
+			apply();
+        } else {
+			ParallelFJImageFilter firstTask = new ParallelFJImageFilter(src, dst, width, height, start, 4999);
+			ParallelFJImageFilter secondTask = new ParallelFJImageFilter(src, dst, width, height, 5000, end);
+	
+			// invokeAll(firstTask, secondTask);
+			firstTask.fork();
+			secondTask.fork();
+			firstTask.join();
+			secondTask.join();
+		}
+    }
 
-    //     ParallelFJImageFilter firstTask = new ParallelFJImageFilter(width, width + length / 2);
-    //     firstTask.fork(); // start asynchronously
+    private void apply() {
+		// final int index, pixel;
+		// for (int steps = 0; steps < NRSTEPS; steps++) {
+			for (int i = start; i < height - 1; i++) {
+				for (int j = start; j < width - 1; j++) {
+					float rt = 0, gt = 0, bt = 0;
+					for (int k = i - 1; k <= i + 1; k++) {
+						
+						rt += (float) ((src[k * width + j - 1] & 0x00ff0000) >> 16);
+						gt += (float) ((src[k * width + j - 1] & 0x0000ff00) >> 8);
+						bt += (float) ((src[k * width + j - 1] & 0x000000ff));
+						// System.out.println("index (with -1):" + index);
 
-    //     ParallelFJImageFilter secondTask = new ParallelFJImageFilter(width + length / 2, height);
+						rt += (float) ((src[k * width + j] & 0x00ff0000) >> 16);
+						gt += (float) ((src[k * width + j] & 0x0000ff00) >> 8);
+						bt += (float) ((src[k * width + j] & 0x000000ff));
+						// System.out.println("index (with 0):" + index);
 
-    //     Long secondTaskResult = secondTask.compute();
-    //     Long firstTaskResult = firstTask.join();
-
-    //     return firstTaskResult + secondTaskResult;
-
-    // }
-
-    // private long add() {
-    //     long result = 0;
-    //     for (int i = width; i < height; i++) {
-    //         result += numbers[i];
-    //     }
-    //     return result;
-    // }
-
-    // public void apply() {
-	// 	int index, pixel;
-	// 	for (int steps = 0; steps < NRSTEPS; steps++) {
-	// 		for (int i = 1; i < height - 1; i++) {
-	// 			for (int j = 1; j < width - 1; j++) {
-	// 				float rt = 0, gt = 0, bt = 0;
-	// 				for (int k = i - 1; k <= i + 1; k++) {
-	// 					index = k * width + j - 1;
-	// 					pixel = src[index];
-	// 					rt += (float) ((pixel & 0x00ff0000) >> 16);
-	// 					gt += (float) ((pixel & 0x0000ff00) >> 8);
-	// 					bt += (float) ((pixel & 0x000000ff));
-
-	// 					index = k * width + j;
-	// 					pixel = src[index];
-	// 					rt += (float) ((pixel & 0x00ff0000) >> 16);
-	// 					gt += (float) ((pixel & 0x0000ff00) >> 8);
-	// 					bt += (float) ((pixel & 0x000000ff));
-
-	// 					index = k * width + j + 1;
-	// 					pixel = src[index];
-	// 					rt += (float) ((pixel & 0x00ff0000) >> 16);
-	// 					gt += (float) ((pixel & 0x0000ff00) >> 8);
-	// 					bt += (float) ((pixel & 0x000000ff));
-	// 				}
-	// 				// Re-assemble destination pixel.
-	// 				index = i * width + j;
-	// 				int dpixel = (0xff000000) | (((int) rt / 9) << 16) | (((int) gt / 9) << 8) | (((int) bt / 9));
-	// 				dst[index] = dpixel;
-	// 			}
-	// 		}
-	// 		// swap references
-	// 		int[] help;
-	// 		help = src;
-	// 		src = dst;
-	// 		dst = help;
-	// 	}
+						rt += (float) ((src[k * width + j + 1] & 0x00ff0000) >> 16);
+						gt += (float) ((src[k * width + j + 1] & 0x0000ff00) >> 8);
+						bt += (float) ((src[k * width + j + 1] & 0x000000ff));
+						// System.out.println("index (with +1):" + index);
+					}
+					// Re-assemble destination pixel.
+					// index = ;
+					System.out.println("index (with i):" + ((i * width) + j));
+					int dpixel = (0xff000000) | (((int) rt / 9) << 16) | (((int) gt / 9) << 8) | (((int) bt / 9));
+					dst[i * width + j] = dpixel;
+				}
+			}
+			// swap references
+			compAndSwap(src, dst);
+			// int[] help;
+			// help = src;
+			// src = dst;
+			// dst = help;
+		// }
 	}
 
-    // public static long startForkJoinSum(long n) {
-    //     long[] numbers = LongStream.rangeClosed(1, n).toArray();
-    //     ForkJoinTask<Long> task = new ParallelFJImageFilter(numbers);
-    //     return new ForkJoinPool().invoke(task);
-    // }
-
+	private void compAndSwap(int source[], int dest[]) {
+		int[] help;
+		help = source;
+		source = dest;
+		dest = help;
+    }
 }
