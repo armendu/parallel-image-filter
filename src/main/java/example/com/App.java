@@ -4,8 +4,6 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.ForkJoinPool;
-import java.util.concurrent.locks.AbstractQueuedSynchronizer;
-
 import javax.imageio.IIOException;
 import javax.imageio.ImageIO;
 
@@ -51,7 +49,7 @@ public final class App {
 
         final long startTime = System.currentTimeMillis();
         ForkJoinPool pool = new ForkJoinPool(Runtime.getRuntime().availableProcessors());   
-        ParallelFJImageFilter task = new ParallelFJImageFilter(src, dst, w, h, 1, (w * h));
+        ParallelFJImageFilter task = new ParallelFJImageFilter(src, dst, w, h, 0, (w * h));
         pool.execute(task);
         task.join();
         // pool.shutdown();
@@ -69,6 +67,7 @@ public final class App {
         final File dstFile = new File(sourceFilePath + "Filtered.jpg");
 
         ImageIO.write(dstImage, "jpg", dstFile);
+        dstImage.flush();
 
         System.out.println("Output image: " + dstFile.getName());
     }
