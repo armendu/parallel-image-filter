@@ -3,29 +3,28 @@ package com.example;
 import java.util.concurrent.RecursiveAction;
 
 public class ParallelFJImageFilter extends RecursiveAction {
+
+    // 200, 400, 600, 800
+    public static final int threshold = 600;
+    public static int numberOfTasksCreated = 0;
+
     private int[] src;
     private int[] dst;
     private int width;
     private int start;
     private int end;
 
-    private final int NRSTEPS = 100;
-    private final int threshold = 600;
-
-    public ParallelFJImageFilter(int[] src, int[] dst, int w, int s, int e) {
+    public ParallelFJImageFilter(int[] src, int[] dst, int width, int start, int end) {
         this.src = src;
         this.dst = dst;
-        width = w;
-        start = s;
-        end = e;
+        this.width = width;
+        this.start = start;
+        this.end = end;
+        numberOfTasksCreated++;
     }
 
     public void apply() {
         int index, pixel;
-
-        System.out.println("start: " + start + ", end " + end);
-
-        for (int steps = 0; steps < NRSTEPS; steps++) {
             for (int i = start; i < end; i++) {
                 for (int j = 1; j < width - 1; j++) {
                     float rt = 0, gt = 0, bt = 0;
@@ -54,12 +53,6 @@ public class ParallelFJImageFilter extends RecursiveAction {
                     dst[index] = dpixel;
                 }
             }
-            // swap references
-            int[] help;
-            help = src;
-            src = dst;
-            dst = help;
-        }
     }
 
     @Override
@@ -67,14 +60,13 @@ public class ParallelFJImageFilter extends RecursiveAction {
         if (end - start < threshold) {
             apply();
         } else {
+            double preciseMiddle = (start + end) / 2.0;
+            int middle = (int) Math.round(preciseMiddle / 10.0) * 10;
 
-            double temp = (double) (start + end) / (double) 2;
-            int middle = (int) Math.round(temp / 10.0) * 10;
+            ParallelFJImageFilter firstTask = new ParallelFJImageFilter(src, dst, width, start, middle);
+            ParallelFJImageFilter secondTask = new ParallelFJImageFilter(src, dst, width, middle, end);
 
-            ParallelFJImageFilter subTask1 = new ParallelFJImageFilter(src, dst, width, start, middle);
-            ParallelFJImageFilter subTask2 = new ParallelFJImageFilter(src, dst, width, middle, end);
-
-            invokeAll(subTask1, subTask2);
+            invokeAll(firstTask, secondTask);
         }
     }
 }
